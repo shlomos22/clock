@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>שעון וטיימר מסך מלא</title>
+  <!-- טעינת הפונט המדויק Outfit ממשקל 900 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800;900&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #0f1115;
+      --card-bg: #1a1e24;
+      --text-main: #ffffff;
+      --text-sub: #9ca3af;
+      --border-color: #2b313a;
+      --tick-major: #848a95;
+      --tick-minor: #3d4450;
+      --hand-hour: #f3f4f6;
+      --hand-min: #e5e7eb;
+      --hand-sec: #60a5fa;
+      --hand-sec-glow: rgba(96, 165, 250, 0.6);
+      --accent: #3b82f6;
+    }
+
+    body.light {
+      --bg-color: #f3f4f6;
+      --card-bg: #e5e7eb;
+      --text-main: #111827;
+      --text-sub: #4b5563;
+      --border-color: #d1d5db;
+      --tick-major: #374151;
+      --tick-minor: #9ca3af;
+      --hand-hour: #111827;
+      --hand-min: #111827;
+      --hand-sec: #2563eb;
+      --hand-sec-glow: rgba(37, 99, 235, 0.4);
+      --accent: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Rubik', system-ui, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      font-size: 0.9rem;
+      z-index: 10;
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      min-width: 36px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.25);
+      border-color: var(--accent);
+    }
+
+    .btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .title-tag {
+      color: var(--text-sub);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4vw;
+      flex-direction: row-reverse;
+    }
+
+    .digital-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    /* הפונט המדויק Outfit */
+    .digital-time {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(3.8rem, 9.6vw, 9.5rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+      direction: ltr;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    /* מניעת קפיצות של הספרות */
+    .digit-cell {
+      display: inline-block;
+      width: 0.6em;
+      text-align: center;
+    }
+
+    .colon-cell {
+      display: inline-block;
+      width: 0.3em;
+      text-align: center;
+      position: relative;
+      top: -0.02em;
+    }
+
+    .date-container {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .hebrew-date {
+      font-size: clamp(1.2rem, 2.2vw, 2.1rem);
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    .gregorian-date {
+      font-size: clamp(0.95rem, 1.6vw, 1.45rem);
+      color: var(--text-sub);
+      font-weight: 500;
+    }
+
+    .timer-action-bar {
+      display: none;
+      margin-top: 16px;
+      gap: 12px;
+      direction: rtl;
+    }
+
+    .timer-action-bar .btn {
+      padding: 8px 18px;
+      font-size: 1rem;
+    }
+
+    /* שעון אנלוגי ומחוגים מעובים */
+    .analog-pane {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clock-face {
+      width: clamp(260px, 38vw, 520px);
+      height: clamp(260px, 38vw, 520px);
+      position: relative;
+    }
+
+    .center-nut {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 15px;
+      height: 15px;
+      background: var(--hand-sec);
+      border-radius: 50%;
+      z-index: 6;
+      box-shadow: 0 0 8px var(--hand-sec-glow);
+    }
+
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+    }
+
+    /* מחוג שעות מעובה עם קצוות מעוגלים */
+    .hour-hand {
+      width: 11px;
+      height: 29%;
+      background: var(--hand-hour);
+      margin-left: -5.5px;
+      border-radius: 8px;
+      z-index: 2;
+    }
+
+    /* מחוג דקות מעובה עם קצוות מעוגלים */
+    .min-hand {
+      width: 8px;
+      height: 42%;
+      background: var(--hand-min);
+      margin-left: -4px;
+      border-radius: 7px;
+      z-index: 3;
+    }
+
+    /* מחוג שניות עם זוהר עדין */
+    .sec-hand {
+      width: 3.5px;
+      height: 48%;
+      background: var(--hand-sec);
+      margin-left: -1.75px;
+      border-radius: 4px;
+      z-index: 4;
+      transform-origin: 50% 82%;
+      bottom: 42%;
+      box-shadow: 0 0 10px var(--hand-sec-glow), 0 0 4px var(--hand-sec);
+      filter: drop-shadow(0 0 6px var(--hand-sec-glow));
+    }
+
+    /* חלון הגדרת טיימר */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px 30px;
+      width: 330px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .timer-inputs {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 24px;
+      direction: ltr;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .input-group input {
+      width: 65px;
+      height: 50px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 1.4rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      text-align: center;
+      outline: none;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .modal-actions .btn {
+      flex: 1;
+      height: 40px;
+    }
+
+    #ytPlayerContainer {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      bottom: 0;
+      left: 0;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        flex-direction: column;
+        justify-content: center;
+        gap: 30px;
+      }
+      .digital-pane {
+        align-items: center;
+        text-align: center;
+      }
+      .date-container {
+        align-items: center;
+      }
+      .clock-face {
+        width: 250px;
+        height: 250px;
+      }
+    }
+  </style>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+
+  <div id="ytPlayerContainer">
+    <div id="player"></div>
+  </div>
+
+  <header>
+    <div class="top-controls">
+      <button class="btn" id="themeBtn" title="מצב תצוגה">◑</button>
+      <button class="btn" id="secToggleBtn" title="הצג/הסתר שניות">S</button>
+      <button class="btn" id="formatBtn" title="פורמט 24/12 שעות">24</button>
+      <button class="btn" id="timerSetupBtn" title="הגדרת טיימר">⏱ טיימר</button>
+      <button class="btn" id="fsBtn" title="מסך מלא">⛶</button>
+    </div>
+    <div class="title-tag" id="modeTitle">שעון במסך מלא</div>
+  </header>
+
+  <main>
+    <div class="analog-pane">
+      <div class="clock-face">
+        <svg id="clockSvg" width="100%" height="100%" viewBox="0 0 400 400"></svg>
+        <div class="hand hour-hand" id="hourHand"></div>
+        <div class="hand min-hand" id="minHand"></div>
+        <div class="hand sec-hand" id="secHand"></div>
+        <div class="center-nut"></div>
+      </div>
+    </div>
+
+    <div class="digital-pane">
+      <div class="digital-time" id="digitalTime"></div>
+      
+      <div class="date-container" id="dateContainer">
+        <div class="hebrew-date" id="hebrewDate">טוען תאריך עברי...</div>
+        <div class="gregorian-date" id="gregorianDate">טוען...</div>
+      </div>
+
+      <div class="timer-action-bar" id="timerActionBar">
+        <button class="btn" id="pauseTimerBtn">השהה</button>
+        <button class="btn" id="resetTimerBtn">איפוס</button>
+        <button class="btn" id="exitTimerBtn">חזרה לשעון</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="timerModal">
+    <div class="modal-box">
+      <div class="modal-title">הגדרת טיימר</div>
+      <div class="timer-inputs">
+        <div class="input-group">
+          <input type="number" id="timerHours" min="0" max="99" value="00" onclick="this.select()">
+          <label>שעות</label>
+        </div>
+        <div class="input-group">
+          <input type="number" id="timerMins" min="0" max="59" value="01" onclick="this.select()">
+          <label>דקות</label>
+        </div>
+        <div class="input-group">
+          <input type="number" id="timerSecs" min="0" max="59" value="00" onclick="this.select()">
+          <label>שניות</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn active" id="startTimerBtn">הפעל טיימר</button>
+        <button class="btn" id="cancelTimerModalBtn">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let is24Hour = true;
+    let showSeconds = true;
+
+    // ניהול טיימר
+    let timerMode = false;
+    let timerDuration = 0;
+    let timerRemaining = 0;
+    let timerPaused = false;
+    let lastTickTime = null;
+    let songPlayed = false;
+
+    // נגן YouTube
+    let ytPlayer = null;
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('player', {
+        height: '200',
+        width: '200',
+        videoId: 'mo5LEZyQwFM',
+        playerVars: {
+          'playsinline': 1
+        }
+      });
+    }
+
+    function playAlarmSong() {
+      if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        ytPlayer.seekTo(0);
+        ytPlayer.playVideo();
+      }
+    }
+
+    function stopAlarmSong() {
+      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+        ytPlayer.stopVideo();
+      }
+    }
+
+    // תאריך עברי בגימטריה
+    function numToHebrewGematria(num, isYear = false) {
+      if (num <= 0) return '';
+      let n = isYear && num >= 5000 ? num % 1000 : num;
+
+      const letters = [
+        { val: 400, char: 'ת' }, { val: 300, char: 'ש' }, { val: 200, char: 'ר' }, { val: 100, char: 'ק' },
+        { val: 90, char: 'צ' },  { val: 80, char: 'פ' },  { val: 70, char: 'ע' },  { val: 60, char: 'ס' },
+        { val: 50, char: 'נ' },  { val: 40, char: 'מ' },  { val: 30, char: 'ל' },  { val: 20, char: 'כ' },
+        { val: 10, char: 'י' },  { val: 9, char: 'ט' },   { val: 8, char: 'ח' },   { val: 7, char: 'ז' },
+        { val: 6, char: 'ו' },   { val: 5, char: 'ה' },   { val: 4, char: 'ד' },   { val: 3, char: 'ג' },
+        { val: 2, char: 'ב' },   { val: 1, char: 'א' }
+      ];
+
+      let res = '';
+      const remainder = n % 100;
+      if (remainder === 15) {
+        n -= 15;
+        res += convertRemaining(n, letters) + 'טו';
+      } else if (remainder === 16) {
+        n -= 16;
+        res += convertRemaining(n, letters) + 'טז';
+      } else {
+        res = convertRemaining(n, letters);
+      }
+
+      if (res.length === 1) return res + '׳';
+      if (res.length > 1) return res.slice(0, -1) + '״' + res.slice(-1);
+      return res;
+    }
+
+    function convertRemaining(n, letters) {
+      let str = '';
+      for (const item of letters) {
+        while (n >= item.val) {
+          str += item.char;
+          n -= item.val;
+        }
+      }
+      return str;
+    }
+
+    function getHebrewDateString(now) {
+      try {
+        const parts = new Intl.DateTimeFormat('he-u-ca-hebrew', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }).formatToParts(now);
+
+        let dayVal = 1, monthName = '', yearVal = 5787;
+        for (const p of parts) {
+          if (p.type === 'day') dayVal = parseInt(p.value, 10);
+          if (p.type === 'month') monthName = p.value;
+          if (p.type === 'year') yearVal = parseInt(p.value, 10);
+        }
+
+        return `${numToHebrewGematria(dayVal)} ${monthName} ${numToHebrewGematria(yearVal, true)}`;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // ציור שנתות השעון
+    function initClockTicks() {
+      const svg = document.getElementById('clockSvg');
+      svg.innerHTML = '';
+      const cx = 200, cy = 200, r = 185;
+
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6) * (Math.PI / 180);
+        const isMajor = i % 5 === 0;
+        const len = isMajor ? 14 : 7;
+        const width = isMajor ? 3.5 : 1.5;
+        const color = isMajor ? 'var(--tick-major)' : 'var(--tick-minor)';
+
+        const x1 = cx + (r - len) * Math.sin(angle);
+        const y1 = cy - (r - len) * Math.cos(angle);
+        const x2 = cx + r * Math.sin(angle);
+        const y2 = cy - r * Math.cos(angle);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', width);
+        line.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(line);
+      }
+    }
+
+    function renderTimeDigits(str) {
+      let html = '';
+      for (const char of str) {
+        if (char === ':') {
+          html += `<span class="colon-cell">:</span>`;
+        } else {
+          html += `<span class="digit-cell">${char}</span>`;
+        }
+      }
+      return html;
+    }
+
+    const pad = n => String(n).padStart(2, '0');
+
+    function loop() {
+      const now = new Date();
+
+      if (timerMode) {
+        if (!timerPaused && lastTickTime) {
+          const delta = performance.now() - lastTickTime;
+          timerRemaining = Math.max(0, timerRemaining - delta);
+        }
+        lastTickTime = performance.now();
+
+        const totalSecs = Math.ceil(timerRemaining / 1000);
+        const h = Math.floor(totalSecs / 3600);
+        const m = Math.floor((totalSecs % 3600) / 60);
+        const s = totalSecs % 60;
+
+        const timeStr = `${pad(h)}:${pad(m)}:${pad(s)}`;
+        document.getElementById('digitalTime').innerHTML = renderTimeDigits(timeStr);
+
+        const secAngle = (s / 60) * 360;
+        const minAngle = ((m + s / 60) / 60) * 360;
+        const progressAngle = timerDuration > 0 ? (timerRemaining / timerDuration) * 360 : 0;
+
+        document.getElementById('secHand').style.transform = `rotate(${secAngle}deg)`;
+        document.getElementById('minHand').style.transform = `rotate(${minAngle}deg)`;
+        document.getElementById('hourHand').style.transform = `rotate(${progressAngle}deg)`;
+        document.getElementById('secHand').style.display = 'block';
+
+        if (timerRemaining <= 0) {
+          timerPaused = true;
+          document.getElementById('pauseTimerBtn').textContent = 'הסתיים';
+          if (!songPlayed) {
+            songPlayed = true;
+            playAlarmSong();
+          }
+        }
+
+      } else {
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        const millis = now.getMilliseconds();
+
+        const secAngle = ((seconds + millis / 1000) / 60) * 360;
+        const minAngle = ((minutes + seconds / 60) / 60) * 360;
+        const hourAngle = (((hours % 12) + minutes / 60) / 12) * 360;
+
+        document.getElementById('hourHand').style.transform = `rotate(${hourAngle}deg)`;
+        document.getElementById('minHand').style.transform = `rotate(${minAngle}deg)`;
+        const secHand = document.getElementById('secHand');
+        secHand.style.transform = `rotate(${secAngle}deg)`;
+        secHand.style.display = showSeconds ? 'block' : 'none';
+
+        let dispHours = hours;
+        if (!is24Hour) dispHours = dispHours % 12 || 12;
+
+        const timeStr = `${pad(dispHours)}:${pad(minutes)}${showSeconds ? ':' + pad(seconds) : ''}`;
+        document.getElementById('digitalTime').innerHTML = renderTimeDigits(timeStr);
+
+        const days = ["יום א׳", "יום ב׳", "יום ג׳", "יום ד׳", "יום ה׳", "יום ו׳", "שבת"];
+        const dayName = days[now.getDay()];
+        const yyyy = now.getFullYear();
+        const mm = pad(now.getMonth() + 1);
+        const dd = pad(now.getDate());
+        
+        const offsetMin = -now.getTimezoneOffset();
+        const sign = offsetMin >= 0 ? '+' : '-';
+        const offH = pad(Math.floor(Math.abs(offsetMin) / 60));
+        const offM = pad(Math.abs(offsetMin) % 60);
+
+        document.getElementById('hebrewDate').textContent = getHebrewDateString(now);
+        document.getElementById('gregorianDate').textContent = `${yyyy}-${mm}-${dd} ${dayName} • מקומי (UTC${sign}${offH}:${offM})`;
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // אירועים וכפתורים
+    const timerModal = document.getElementById('timerModal');
+    const timerSetupBtn = document.getElementById('timerSetupBtn');
+    const cancelModalBtn = document.getElementById('cancelTimerModalBtn');
+    const startTimerBtn = document.getElementById('startTimerBtn');
+    const timerActionBar = document.getElementById('timerActionBar');
+    const pauseTimerBtn = document.getElementById('pauseTimerBtn');
+    const resetTimerBtn = document.getElementById('resetTimerBtn');
+    const exitTimerBtn = document.getElementById('exitTimerBtn');
+    const modeTitle = document.getElementById('modeTitle');
+    const dateContainer = document.getElementById('dateContainer');
+
+    timerSetupBtn.addEventListener('click', () => {
+      timerModal.classList.add('open');
+    });
+
+    cancelModalBtn.addEventListener('click', () => {
+      timerModal.classList.remove('open');
+    });
+
+    startTimerBtn.addEventListener('click', () => {
+      const h = parseInt(document.getElementById('timerHours').value, 10) || 0;
+      const m = parseInt(document.getElementById('timerMins').value, 10) || 0;
+      const s = parseInt(document.getElementById('timerSecs').value, 10) || 0;
+
+      const totalMs = (h * 3600 + m * 60 + s) * 1000;
+      if (totalMs <= 0) return;
+
+      timerDuration = totalMs;
+      timerRemaining = totalMs;
+      timerPaused = false;
+      timerMode = true;
+      songPlayed = false;
+      lastTickTime = performance.now();
+
+      timerModal.classList.remove('open');
+      timerActionBar.style.display = 'flex';
+      dateContainer.style.display = 'none';
+      modeTitle.textContent = 'טיימר לאחור';
+      pauseTimerBtn.textContent = 'השהה';
+    });
+
+    pauseTimerBtn.addEventListener('click', () => {
+      timerPaused = !timerPaused;
+      pauseTimerBtn.textContent = timerPaused ? 'המשך' : 'השהה';
+      if (!timerPaused) lastTickTime = performance.now();
+    });
+
+    resetTimerBtn.addEventListener('click', () => {
+      timerRemaining = timerDuration;
+      songPlayed = false;
+      stopAlarmSong();
+      lastTickTime = performance.now();
+      pauseTimerBtn.textContent = 'השהה';
+      timerPaused = false;
+    });
+
+    exitTimerBtn.addEventListener('click', () => {
+      timerMode = false;
+      stopAlarmSong();
+      timerActionBar.style.display = 'none';
+      dateContainer.style.display = 'flex';
+      modeTitle.textContent = 'שעון במסך מלא';
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      document.body.classList.toggle('light');
+    });
+
+    document.getElementById('secToggleBtn').addEventListener('click', () => {
+      showSeconds = !showSeconds;
+    });
+
+    document.getElementById('formatBtn').addEventListener('click', (e) => {
+      is24Hour = !is24Hour;
+      e.target.textContent = is24Hour ? '24' : '12';
+    });
+
+    document.getElementById('fsBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    initClockTicks();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
